@@ -1448,121 +1448,367 @@
             const { scores, styleKey, style, acCE, aeRO } = window.learningResults;
             const maxScore = 48;
 
+            // Colors
             const chapmanBlue = [0, 32, 91];
             const chapmanGold = [196, 160, 0];
             const textDark = [26, 26, 46];
             const textMuted = [100, 100, 110];
+            const greenColor = [46, 125, 50];
+            const redColor = [198, 40, 40];
+            const blueColor = [21, 101, 192];
+            const orangeColor = [230, 81, 0];
+            const purpleColor = [123, 31, 162];
+            const tealColor = [0, 131, 143];
 
-            // Header
-            doc.setFillColor(...chapmanBlue);
-            doc.rect(0, 0, 210, 45, 'F');
+            // Style colors
+            const styleColors = {
+                diverging: redColor,
+                assimilating: blueColor,
+                converging: greenColor,
+                accommodating: purpleColor
+            };
+
+            // Calculate tracker metrics
+            const totalScore = scores.ce + scores.ro + scores.ac + scores.ae;
+            const dominantMode = Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0].toUpperCase();
+            const processing = acCE <= 0 ? 'Feeling' : 'Thinking';
+            const perception = aeRO <= 0 ? 'Watching' : 'Doing';
+            const styleAbbrev = { diverging: 'Dv', assimilating: 'As', converging: 'Cv', accommodating: 'Ac' };
+            const clarity = Math.abs(acCE) + Math.abs(aeRO);
+            const clarityLevel = clarity >= 20 ? 'Strong' : clarity >= 10 ? 'Moderate' : 'Balanced';
+            const trackerCode = 'LSA-' + styleAbbrev[styleKey] + '-' + clarityLevel.charAt(0);
+
+            // Helper function
+            function addWrappedText(text, x, startY, maxWidth, lineHeight) {
+                const lines = doc.splitTextToSize(text, maxWidth);
+                let currentY = startY;
+                lines.forEach(function(line) {
+                    if (currentY > 275) { doc.addPage(); currentY = 20; }
+                    doc.text(line, x, currentY);
+                    currentY += lineHeight;
+                });
+                return currentY;
+            }
+
+            // ===== PAGE 1: Header and Learning Style Overview =====
+            doc.setFillColor(chapmanBlue[0], chapmanBlue[1], chapmanBlue[2]);
+            doc.rect(0, 0, 210, 42, 'F');
             doc.setFontSize(10);
             doc.setTextColor(255, 255, 255);
             doc.text('CHAPMAN UNIVERSITY', 105, 12, { align: 'center' });
             doc.setFontSize(9);
-            doc.setTextColor(...chapmanGold);
+            doc.setTextColor(chapmanGold[0], chapmanGold[1], chapmanGold[2]);
             doc.text('Argyros College of Business and Economics', 105, 18, { align: 'center' });
-            doc.setFontSize(18);
+            doc.setFontSize(16);
             doc.setTextColor(255, 255, 255);
-            doc.text('Learning Style Assessment', 105, 30, { align: 'center' });
+            doc.text('Learning Style Assessment', 105, 28, { align: 'center' });
+            doc.setFontSize(9);
+            doc.text("Based on Kolb's Experiential Learning Theory", 105, 36, { align: 'center' });
+            doc.setFillColor(chapmanGold[0], chapmanGold[1], chapmanGold[2]);
+            doc.rect(0, 42, 210, 2, 'F');
+
+            let y = 52;
+
+            // Student Info
             doc.setFontSize(10);
-            doc.text("Based on Kolb's Experiential Learning Theory", 105, 38, { align: 'center' });
-            doc.setFillColor(...chapmanGold);
-            doc.rect(0, 45, 210, 2, 'F');
+            doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+            doc.text('Student: ' + studentName, 20, y);
+            doc.text('Date: ' + new Date(surveyDate).toLocaleDateString(), 140, y);
+            y += 10;
 
-            let y = 55;
-            doc.setFontSize(11);
-            doc.setTextColor(...textDark);
-            doc.text(`Student: ${studentName}`, 20, y);
-            doc.text(`Date: ${new Date(surveyDate).toLocaleDateString()}`, 120, y);
-            y += 12;
-
-            // Style
-            doc.setFillColor(...chapmanBlue);
-            doc.roundedRect(20, y, 170, 20, 3, 3, 'F');
+            // Primary Style Banner
+            const sColor = styleColors[styleKey];
+            doc.setFillColor(chapmanBlue[0], chapmanBlue[1], chapmanBlue[2]);
+            doc.roundedRect(20, y, 170, 18, 2, 2, 'F');
             doc.setFontSize(14);
             doc.setTextColor(255, 255, 255);
-            doc.text(`${style.icon} ${style.name.toUpperCase()}`, 105, y + 13, { align: 'center' });
-            y += 28;
+            doc.text('LEARNING STYLE: ' + style.name.toUpperCase(), 105, y + 12, { align: 'center' });
+            y += 24;
 
-            doc.setFontSize(11);
-            doc.setTextColor(...chapmanGold);
-            doc.text(`${style.subtitle}`, 105, y, { align: 'center' });
-            y += 10;
-
-            // Scores
+            doc.setFontSize(10);
+            doc.setTextColor(chapmanGold[0], chapmanGold[1], chapmanGold[2]);
+            doc.text(style.subtitle, 105, y, { align: 'center' });
+            y += 6;
             doc.setFontSize(9);
-            doc.setTextColor(...textDark);
-            doc.text(`CE: ${scores.ce}  |  RO: ${scores.ro}  |  AC: ${scores.ac}  |  AE: ${scores.ae}`, 105, y, { align: 'center' });
+            doc.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+            doc.text('Dominant Modes: ' + style.dominant.join(' + '), 105, y, { align: 'center' });
             y += 10;
 
-            // Description
-            const descLines = doc.splitTextToSize(style.description, 170);
-            descLines.forEach(line => { doc.text(line, 20, y); y += 5; });
-            y += 8;
+            // Score Distribution Box
+            doc.setFillColor(245, 247, 250);
+            doc.roundedRect(20, y, 170, 32, 2, 2, 'F');
+            doc.setFontSize(9);
+            doc.setTextColor(chapmanBlue[0], chapmanBlue[1], chapmanBlue[2]);
+            doc.text('LEARNING MODE SCORES', 25, y + 7);
+            doc.setFontSize(8);
+            doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+            doc.text('CE (Concrete Experience): ' + scores.ce + '/48', 25, y + 15);
+            doc.text('RO (Reflective Observation): ' + scores.ro + '/48', 105, y + 15);
+            doc.text('AC (Abstract Conceptualization): ' + scores.ac + '/48', 25, y + 23);
+            doc.text('AE (Active Experimentation): ' + scores.ae + '/48', 105, y + 23);
+            doc.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+            doc.text('AC-CE: ' + acCE + ' (' + processing + ')', 25, y + 29);
+            doc.text('AE-RO: ' + aeRO + ' (' + perception + ')', 105, y + 29);
+            y += 38;
+
+            // Tracker Code Box
+            doc.setFillColor(chapmanBlue[0], chapmanBlue[1], chapmanBlue[2]);
+            doc.roundedRect(20, y, 170, 10, 2, 2, 'F');
+            doc.setFontSize(8);
+            doc.setTextColor(255, 255, 255);
+            doc.text('Tracker: ' + trackerCode + '  |  Raw: CE' + scores.ce + '-RO' + scores.ro + '-AC' + scores.ac + '-AE' + scores.ae + '  |  Clarity: ' + clarityLevel, 105, y + 7, { align: 'center' });
+            y += 16;
+
+            // Profile Summary
+            doc.setFontSize(10);
+            doc.setTextColor(chapmanBlue[0], chapmanBlue[1], chapmanBlue[2]);
+            doc.text('YOUR LEARNING PROFILE', 20, y);
+            y += 6;
+            doc.setFontSize(9);
+            doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+            y = addWrappedText(style.profileSummary, 20, y, 170, 4.5);
+            y += 4;
+
+            // How You Learn
+            doc.setFontSize(10);
+            doc.setTextColor(chapmanBlue[0], chapmanBlue[1], chapmanBlue[2]);
+            doc.text('How You Learn', 20, y);
+            y += 5;
+            doc.setFontSize(9);
+            doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+            y = addWrappedText(style.howYouLearn, 20, y, 170, 4.5);
+            y += 4;
+
+            // Best Environment
+            doc.setFontSize(10);
+            doc.setTextColor(greenColor[0], greenColor[1], greenColor[2]);
+            doc.text('Best Learning Environment', 20, y);
+            y += 5;
+            doc.setFontSize(9);
+            doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+            y = addWrappedText(style.bestEnvironment, 20, y, 170, 4.5);
+            y += 4;
+
+            // Challenging Environment
+            doc.setFontSize(10);
+            doc.setTextColor(redColor[0], redColor[1], redColor[2]);
+            doc.text('Challenging Environment', 20, y);
+            y += 5;
+            doc.setFontSize(9);
+            doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+            y = addWrappedText(style.challengingEnvironment, 20, y, 170, 4.5);
+            y += 6;
 
             // Strengths
-            doc.setFontSize(11);
-            doc.setTextColor(...chapmanBlue);
+            doc.setFontSize(10);
+            doc.setTextColor(chapmanBlue[0], chapmanBlue[1], chapmanBlue[2]);
             doc.text('Learning Strengths', 20, y);
-            y += 7;
+            y += 5;
+            doc.setFontSize(8);
+            doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+            style.strengths.forEach(function(s) {
+                if (y > 275) { doc.addPage(); y = 20; }
+                doc.text('- ' + s, 25, y);
+                y += 4;
+            });
+            y += 4;
+
+            // Strategies
+            doc.setFontSize(10);
+            doc.setTextColor(blueColor[0], blueColor[1], blueColor[2]);
+            doc.text('Strategies That Work For You', 20, y);
+            y += 5;
+            doc.setFontSize(8);
+            doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+            style.strategies.forEach(function(s) {
+                if (y > 275) { doc.addPage(); y = 20; }
+                doc.text('-> ' + s, 25, y);
+                y += 4;
+            });
+
+            // ===== PAGE 2: SWOT, Cycle, and Comparison =====
+            doc.addPage();
+            y = 20;
+
+            // SWOT Header
+            doc.setFillColor(chapmanBlue[0], chapmanBlue[1], chapmanBlue[2]);
+            doc.roundedRect(20, y, 170, 10, 2, 2, 'F');
+            doc.setFontSize(11);
+            doc.setTextColor(255, 255, 255);
+            doc.text('SWOT ANALYSIS - ' + style.name + ' Learning Style', 105, y + 7, { align: 'center' });
+            y += 18;
+
+            // SWOT Grid
+            const boxW = 82;
+            const boxH = 28;
+
+            // Strength Box
+            doc.setFillColor(232, 245, 233);
+            doc.roundedRect(20, y, boxW, boxH, 2, 2, 'F');
+            doc.setDrawColor(greenColor[0], greenColor[1], greenColor[2]);
+            doc.setLineWidth(0.5);
+            doc.line(20, y, 20, y + boxH);
             doc.setFontSize(9);
-            doc.setTextColor(...textDark);
-            style.strengths.slice(0, 4).forEach(s => {
-                if (y > 270) { doc.addPage(); y = 20; }
-                doc.text(`• ${s}`, 25, y); y += 5;
+            doc.setTextColor(greenColor[0], greenColor[1], greenColor[2]);
+            doc.text('STRENGTH', 25, y + 7);
+            doc.setFontSize(7);
+            doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+            const sLines = doc.splitTextToSize(style.swotStrength, boxW - 10);
+            sLines.forEach(function(line, i) { if (i < 4) doc.text(line, 25, y + 12 + (i * 4)); });
+
+            // Weakness Box
+            doc.setFillColor(255, 235, 238);
+            doc.roundedRect(108, y, boxW, boxH, 2, 2, 'F');
+            doc.setDrawColor(redColor[0], redColor[1], redColor[2]);
+            doc.line(108, y, 108, y + boxH);
+            doc.setFontSize(9);
+            doc.setTextColor(redColor[0], redColor[1], redColor[2]);
+            doc.text('WEAKNESS', 113, y + 7);
+            doc.setFontSize(7);
+            doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+            const wLines = doc.splitTextToSize(style.swotWeakness, boxW - 10);
+            wLines.forEach(function(line, i) { if (i < 4) doc.text(line, 113, y + 12 + (i * 4)); });
+
+            y += boxH + 5;
+
+            // Opportunity Box
+            doc.setFillColor(227, 242, 253);
+            doc.roundedRect(20, y, boxW, boxH, 2, 2, 'F');
+            doc.setDrawColor(blueColor[0], blueColor[1], blueColor[2]);
+            doc.line(20, y, 20, y + boxH);
+            doc.setFontSize(9);
+            doc.setTextColor(blueColor[0], blueColor[1], blueColor[2]);
+            doc.text('OPPORTUNITY', 25, y + 7);
+            doc.setFontSize(7);
+            doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+            const oLines = doc.splitTextToSize(style.swotOpportunity, boxW - 10);
+            oLines.forEach(function(line, i) { if (i < 4) doc.text(line, 25, y + 12 + (i * 4)); });
+
+            // Threat Box
+            doc.setFillColor(255, 243, 224);
+            doc.roundedRect(108, y, boxW, boxH, 2, 2, 'F');
+            doc.setDrawColor(orangeColor[0], orangeColor[1], orangeColor[2]);
+            doc.line(108, y, 108, y + boxH);
+            doc.setFontSize(9);
+            doc.setTextColor(orangeColor[0], orangeColor[1], orangeColor[2]);
+            doc.text('THREAT', 113, y + 7);
+            doc.setFontSize(7);
+            doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+            const tLines = doc.splitTextToSize(style.swotThreat, boxW - 10);
+            tLines.forEach(function(line, i) { if (i < 4) doc.text(line, 113, y + 12 + (i * 4)); });
+
+            y += boxH + 12;
+
+            // Kolb's Learning Cycle
+            doc.setFontSize(11);
+            doc.setTextColor(chapmanBlue[0], chapmanBlue[1], chapmanBlue[2]);
+            doc.text("KOLB'S LEARNING CYCLE", 20, y);
+            y += 7;
+            doc.setFontSize(8);
+            doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+            doc.text('Effective learning uses all four stages in sequence:', 20, y);
+            y += 6;
+
+            const cycleSteps = [
+                { num: '1', name: 'Concrete Experience (CE)', desc: 'Have an experience', color: orangeColor },
+                { num: '2', name: 'Reflective Observation (RO)', desc: 'Reflect on the experience', color: tealColor },
+                { num: '3', name: 'Abstract Conceptualization (AC)', desc: 'Form theories and concepts', color: blueColor },
+                { num: '4', name: 'Active Experimentation (AE)', desc: 'Test concepts in new situations', color: greenColor }
+            ];
+
+            cycleSteps.forEach(function(step) {
+                doc.setTextColor(step.color[0], step.color[1], step.color[2]);
+                doc.text(step.num + '. ' + step.name, 25, y);
+                doc.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+                doc.text(' - ' + step.desc, 85, y);
+                y += 5;
             });
             y += 8;
 
-            // Strategies
-            if (y > 220) { doc.addPage(); y = 20; }
+            // Four Learning Styles Comparison
             doc.setFontSize(11);
-            doc.setTextColor(...chapmanBlue);
-            doc.text('Strategies That Work', 20, y);
-            y += 7;
-            doc.setFontSize(9);
-            doc.setTextColor(...textDark);
-            style.strategies.slice(0, 4).forEach(s => {
-                if (y > 270) { doc.addPage(); y = 20; }
-                doc.text(`→ ${s}`, 25, y); y += 5;
+            doc.setTextColor(chapmanBlue[0], chapmanBlue[1], chapmanBlue[2]);
+            doc.text('COMPARING THE FOUR LEARNING STYLES', 20, y);
+            y += 8;
+
+            const styleComp = [
+                { name: 'Diverging', modes: 'Feel + Watch', learns: 'Observing, brainstorming', q: 'Why?', color: redColor },
+                { name: 'Assimilating', modes: 'Think + Watch', learns: 'Reading, lectures, models', q: 'What?', color: blueColor },
+                { name: 'Converging', modes: 'Think + Do', learns: 'Problem-solving, testing', q: 'How?', color: greenColor },
+                { name: 'Accommodating', modes: 'Feel + Do', learns: 'Hands-on, trial & error', q: 'What if?', color: purpleColor }
+            ];
+
+            // Table header
+            doc.setFontSize(7);
+            doc.setTextColor(chapmanBlue[0], chapmanBlue[1], chapmanBlue[2]);
+            doc.text('Style', 25, y);
+            doc.text('Modes', 55, y);
+            doc.text('Learns By', 90, y);
+            doc.text('Question', 150, y);
+            y += 5;
+
+            doc.setFontSize(7);
+            styleComp.forEach(function(s) {
+                const isYourStyle = s.name.toLowerCase() === styleKey;
+                if (isYourStyle) {
+                    doc.setFillColor(245, 247, 250);
+                    doc.rect(20, y - 3, 170, 7, 'F');
+                }
+                doc.setTextColor(s.color[0], s.color[1], s.color[2]);
+                doc.text(s.name + (isYourStyle ? ' (You)' : ''), 25, y);
+                doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+                doc.text(s.modes, 55, y);
+                doc.text(s.learns, 90, y);
+                doc.text('"' + s.q + '"', 150, y);
+                y += 7;
             });
+            y += 8;
+
+            // Career Fit
+            doc.setFontSize(10);
+            doc.setTextColor(chapmanBlue[0], chapmanBlue[1], chapmanBlue[2]);
+            doc.text('Career Fit', 20, y);
+            y += 5;
+            doc.setFontSize(8);
+            doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+            doc.text(style.careers, 25, y);
             y += 10;
 
-            // Reflection
-            if (y > 200) { doc.addPage(); y = 20; }
-            doc.setFillColor(...chapmanBlue);
+            // Reflection Questions
+            doc.setFillColor(chapmanBlue[0], chapmanBlue[1], chapmanBlue[2]);
             doc.roundedRect(20, y, 170, 10, 2, 2, 'F');
             doc.setFontSize(10);
             doc.setTextColor(255, 255, 255);
             doc.text('REFLECTION QUESTIONS', 105, y + 7, { align: 'center' });
-            y += 18;
+            y += 16;
 
             const reflectionQs = [
-                'When has learning come easily? What conditions were present?',
-                'Which learning mode do you use least? How could you develop it?',
-                'How does your style affect how you prefer to receive feedback?',
-                'How will you accommodate different learning styles on your team?'
+                'Think of a time when learning came easily. What conditions were present? How does this relate to your style?',
+                'Recall a learning situation that was frustrating. Was it misaligned with your preferred style?',
+                'Which of the four learning modes do you use least? How could you develop it?',
+                'How does your learning style affect how you prefer to receive feedback?',
+                'As a future manager, how will you accommodate different learning styles on your team?'
             ];
-            doc.setFontSize(9);
-            doc.setTextColor(...textDark);
-            reflectionQs.forEach((q, i) => {
-                if (y > 270) { doc.addPage(); y = 20; }
-                const lines = doc.splitTextToSize(`${i + 1}. ${q}`, 165);
-                lines.forEach(line => { doc.text(line, 25, y); y += 5; });
-                y += 4;
+            doc.setFontSize(8);
+            doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+            reflectionQs.forEach(function(q, i) {
+                if (y > 275) { doc.addPage(); y = 20; }
+                const qLines = doc.splitTextToSize((i + 1) + '. ' + q, 165);
+                qLines.forEach(function(line) { doc.text(line, 25, y); y += 4; });
+                y += 2;
             });
 
-            // Footer
+            // Footer on all pages
             const pageCount = doc.internal.getNumberOfPages();
             for (let i = 1; i <= pageCount; i++) {
                 doc.setPage(i);
                 doc.setFontSize(8);
-                doc.setTextColor(...textMuted);
-                doc.text(`Page ${i} of ${pageCount}`, 105, 287, { align: 'center' });
-                doc.text('Chapman University • Argyros College of Business and Economics • MGMT 316', 105, 292, { align: 'center' });
+                doc.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+                doc.text('Page ' + i + ' of ' + pageCount, 105, 287, { align: 'center' });
+                doc.text('Chapman University - Argyros College of Business and Economics - MGMT 316', 105, 292, { align: 'center' });
             }
 
-            doc.save(`Learning_Style_Assessment_${studentName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+            doc.save('Learning_Style_Assessment_' + studentName.replace(/\s+/g, '_') + '_' + new Date().toISOString().split('T')[0] + '.pdf');
         }
 
         function restartAssessment() {
