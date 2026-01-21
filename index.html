@@ -664,6 +664,7 @@
                     <div class="input-group">
                         <label for="testDate">Assessment Date</label>
                         <input type="date" id="testDate">
+                        <script>document.getElementById('testDate').value = new Date().toISOString().split('T')[0];</script>
                     </div>
                 </div>
 
@@ -979,24 +980,9 @@
         let studentName = '';
         let surveyDate = '';
 
-        // Robust auto-date initialization with multiple fallbacks
-        function setTodayDate() {
-            var dateField = document.getElementById('testDate');
-            if (dateField && !dateField.value) {
-                dateField.value = new Date().toISOString().split('T')[0];
-            }
-        }
-        // Method 1: Immediate check if DOM already ready
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            setTodayDate();
-        }
-        // Method 2: Standard DOMContentLoaded
-        document.addEventListener('DOMContentLoaded', setTodayDate);
-        // Method 3: Window load event
-        window.addEventListener('load', setTodayDate);
-        // Method 4: Fallback setTimeout
-        setTimeout(setTodayDate, 100);
-        setTimeout(setTodayDate, 500);
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('testDate').value = new Date().toISOString().split('T')[0];
+        });
 
         function startAssessment() {
             studentName = document.getElementById('studentName').value.trim();
