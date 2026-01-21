@@ -979,9 +979,25 @@
         let studentName = '';
         let surveyDate = '';
 
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('testDate').value = new Date().toISOString().split('T')[0];
-        });
+        // Robust auto-date initialization with multiple fallbacks
+        function setTodayDate() {
+            var dateField = document.getElementById('testDate');
+            if (dateField && !dateField.value) {
+                dateField.value = new Date().toISOString().split('T')[0];
+            }
+        }
+        // Try immediately
+        setTodayDate();
+        // Try on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', setTodayDate);
+        // Try on window load
+        window.addEventListener('load', setTodayDate);
+        // Try with requestAnimationFrame
+        requestAnimationFrame(setTodayDate);
+        // Try with setTimeout fallbacks
+        setTimeout(setTodayDate, 0);
+        setTimeout(setTodayDate, 100);
+        setTimeout(setTodayDate, 500);
 
         function startAssessment() {
             studentName = document.getElementById('studentName').value.trim();
@@ -1135,7 +1151,6 @@
             const style = styleData[styleKey];
 
             // Calculate additional metrics for tracker
-            const maxScore = 48;
             const pctCE = Math.round((scores.ce / maxScore) * 100);
             const pctRO = Math.round((scores.ro / maxScore) * 100);
             const pctAC = Math.round((scores.ac / maxScore) * 100);
@@ -1822,12 +1837,6 @@
             document.getElementById('progressFill').style.width = '0%';
             window.scrollTo(0, 0);
         }
-
-        // Initialize date field immediately (script is at bottom of body, so DOM is ready)
-        (function initDateField() {
-            var d = document.getElementById('testDate');
-            if (d) d.value = new Date().toISOString().split('T')[0];
-        })();
     </script>
 </body>
 </html>
